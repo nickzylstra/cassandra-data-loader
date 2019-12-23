@@ -4,9 +4,11 @@ import org.apache.cassandra.io.sstable.CQLSSTableWriter
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import com.github.tototoshi.csv._
-import java.time.LocalDate
+import java.time.{LocalDate,ZonedDateTime}
 import scalax.file.Path
 import org.slf4j.{Logger,LoggerFactory}
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 //object CaxSSTableWriterTranx extends App with LazyLogging {
 object CsvToSSTableWriter extends App {
@@ -61,6 +63,7 @@ object CsvToSSTableWriter extends App {
       override val delimiter = cfg.delimiter
     }
     val reader = CSVReader.open(cfg.csv)
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssZ")
 
     try {
       var line = reader.readNext()
@@ -71,7 +74,10 @@ object CsvToSSTableWriter extends App {
           case c if c._2 == "varchar" => line.get(i).asInstanceOf[Object]
           case c if c._2 == "int"     => line.get(i).toInt.asInstanceOf[Object]
           case c if c._2 == "double"  => line.get(i).toDouble.asInstanceOf[Object]
-          case c if c._2 == "date"    => (LocalDate.parse(line.get(i)).toEpochDay().toInt + epochMiddle).asInstanceOf[Object]
+          // case c if c._2 == "date"    => (LocalDate.parse(line.get(i)).toEpochDay().toInt + epochMiddle).asInstanceOf[Object]
+          case c if c._2 == "timestamp" => (ZonedDateTime.parse(line.get(i),formatter)).asInstanceOf[Object]
+          case c if c._2 == "decimal" => (BigDecimal(line.get(i))).asInstanceOf[Object]
+          // case c if c._2 == "uuid"    => line.get(i).asInstanceOf[Object]
         }
 
         if (lineCount % 100000 == 0) log.info(f"Inserting row $lineCount%,9d : ${colValues}")
